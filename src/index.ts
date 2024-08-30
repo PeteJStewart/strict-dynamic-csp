@@ -1,17 +1,3 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Bind resources to your worker in `wrangler.toml`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
-
-
 // Define the Env interface for environment variables
 interface Env {
     ENFORCE_CSP: string;
@@ -51,7 +37,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
         // Determine CSP mode based on environment variable
         const cspMode = env.ENFORCE_CSP === 'true' ? '' : '-Report-Only';
-        const cspHeader = `script-src 'strict-dynamic' 'nonce-${nonce}' 'unsafe-inline'; object-src 'none'; base-uri 'none';`;
+        const cspHeader = `script-src 'strict-dynamic' 'nonce-${nonce}' 'unsafe-inline' https:; object-src 'none'; base-uri 'none';`;
 
         modifiedResponse.headers.set(`Content-Security-Policy${cspMode}`, cspHeader);
 
