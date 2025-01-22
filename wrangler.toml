@@ -1,5 +1,5 @@
 #:schema node_modules/wrangler/config-schema.json
-name = "v1"
+name = "strict-dynamic-csp-v1"
 main = "src/index.ts"
 compatibility_date = "2024-08-21"
 compatibility_flags = ["nodejs_compat"]
