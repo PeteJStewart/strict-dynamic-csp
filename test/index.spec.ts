@@ -9,6 +9,13 @@ const TEST_HTML = `
 <head>
     <script src="https://example.com/script1.js"></script>
     <script>console.log('inline script');</script>
+    <style>body { color: blue; }</style>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .header { 
+            background: red; 
+        }
+    </style>
 </head>
 <body>
     <script src="https://example.com/script2.js"></script>
@@ -62,7 +69,7 @@ describe('CSP Worker Tests', () => {
 		
 		const cspHeader = response.headers.get('Content-Security-Policy');
 		expect(cspHeader).toBeDefined();
-		expect(cspHeader).toMatch(/^script-src 'strict-dynamic' 'nonce-[A-Za-z0-9+/=]+' 'unsafe-inline' https:; object-src 'none'; base-uri 'none';$/);
+		expect(cspHeader).toMatch(/^script-src 'strict-dynamic' 'nonce-[A-Za-z0-9+/=]+' 'unsafe-inline' https:; style-src 'self' 'nonce-[A-Za-z0-9+/=]+'; object-src 'none'; base-uri 'none'; upgrade-insecure-requests$/);
 	});
 
 	it('should set CSP-Report-Only header when ENFORCE_CSP is false', async () => {
@@ -73,7 +80,7 @@ describe('CSP Worker Tests', () => {
 		
 		const cspHeader = response.headers.get('Content-Security-Policy-Report-Only');
 		expect(cspHeader).toBeDefined();
-		expect(cspHeader).toMatch(/^script-src 'strict-dynamic' 'nonce-[A-Za-z0-9+/=]+' 'unsafe-inline' https:; object-src 'none'; base-uri 'none';$/);
+		expect(cspHeader).toMatch(/^script-src 'strict-dynamic' 'nonce-[A-Za-z0-9+/=]+' 'unsafe-inline' https:; style-src 'self' 'nonce-[A-Za-z0-9+/=]+'; object-src 'none'; base-uri 'none'; upgrade-insecure-requests$/);
 	});
 
 	it('should not modify non-HTML responses', async () => {
@@ -109,5 +116,35 @@ describe('CSP Worker Tests', () => {
 		// Nonce should be valid base64 and 24 characters (16 bytes in base64)
 		const nonce = nonceMatch![1];
 		expect(nonce).toMatch(/^[A-Za-z0-9+/=]{24}$/);
+	});
+
+	it('should inject nonces into all style tags', async () => {
+		const response = await worker.fetch(request, mockEnv, ctx);
+		await waitOnExecutionContext(ctx);
+		
+		const html = await response.text();
+		
+		// All style tags should have a nonce attribute
+		expect(html).toMatch(/<style[^>]*nonce="[A-Za-z0-9+/=]+"[^>]*>/g);
+		// Should have exactly 2 style tags with nonces
+		expect(html.match(/<style[^>]*nonce="[A-Za-z0-9+/=]+"[^>]*>/g)?.length).toBe(2);
+	});
+
+	it('should include style-src in CSP header with correct nonce', async () => {
+		const response = await worker.fetch(request, mockEnv, ctx);
+		await waitOnExecutionContext(ctx);
+		
+		const cspHeader = response.headers.get('Content-Security-Policy');
+		expect(cspHeader).toBeDefined();
+		expect(cspHeader).toContain("style-src 'self' 'nonce-");
+		
+		// Extract nonce from style tag
+		const html = await response.text();
+		const nonceMatch = html.match(/style[^>]*nonce="([A-Za-z0-9+/=]+)"/);
+		expect(nonceMatch).toBeTruthy();
+		
+		// Verify the same nonce is used in the CSP header
+		const nonce = nonceMatch![1];
+		expect(cspHeader).toContain(`'nonce-${nonce}'`);
 	});
 });

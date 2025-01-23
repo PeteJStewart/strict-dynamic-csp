@@ -31,13 +31,20 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     if (contentType && contentType.includes('text/html')) {
         const nonce = await generateNonce();
         const rewriter = new HTMLRewriter()
-            .on('script', new ScriptNonceHandler(nonce));
+            .on('script', new ScriptNonceHandler(nonce))
+            .on('style', new ScriptNonceHandler(nonce));
 
         const modifiedResponse = rewriter.transform(response);
 
         // Determine CSP mode based on environment variable
         const cspMode = env.ENFORCE_CSP === 'true' ? '' : '-Report-Only';
-        const cspHeader = `script-src 'strict-dynamic' 'nonce-${nonce}' 'unsafe-inline' https:; object-src 'none'; base-uri 'none';`;
+        const cspHeader = [
+            `script-src 'strict-dynamic' 'nonce-${nonce}' 'unsafe-inline' https:`,
+            `style-src 'self' 'nonce-${nonce}'`,
+            `object-src 'none'`,
+            "base-uri 'none'",
+            "upgrade-insecure-requests"
+        ].join('; ');
 
         modifiedResponse.headers.set(`Content-Security-Policy${cspMode}`, cspHeader);
 
