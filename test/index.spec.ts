@@ -31,7 +31,8 @@ describe('CSP Worker Tests', () => {
 	beforeEach(() => {
 		// Mock the environment
 		mockEnv = {
-			ENFORCE_CSP: 'true'
+			ENFORCE_CSP: 'true',
+			STYLE_NONCE: 'true'
 		};
 
 		// Mock the fetch response
@@ -146,5 +147,23 @@ describe('CSP Worker Tests', () => {
 		// Verify the same nonce is used in the CSP header
 		const nonce = nonceMatch![1];
 		expect(cspHeader).toContain(`'nonce-${nonce}'`);
+	});
+
+	it('should not inject nonces into style tags when STYLE_NONCE is false', async () => {
+		mockEnv.STYLE_NONCE = 'false';
+		
+		const response = await worker.fetch(request, mockEnv, ctx);
+		await waitOnExecutionContext(ctx);
+		
+		const html = await response.text();
+		
+		// Style tags should not have nonce attributes
+		expect(html).not.toMatch(/<style[^>]*nonce="[A-Za-z0-9+/=]+"[^>]*>/g);
+		// Script tags should still have nonce attributes
+		expect(html).toMatch(/<script[^>]*nonce="[A-Za-z0-9+/=]+"[^>]*>/g);
+		
+		// CSP header should use unsafe-inline for styles
+		const cspHeader = response.headers.get('Content-Security-Policy');
+		expect(cspHeader).toContain("style-src 'self' 'unsafe-inline'");
 	});
 });

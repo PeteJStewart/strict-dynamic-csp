@@ -6,3 +6,4 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 ENFORCE_CSP = "true"
+STYLE_NONCE = "true"

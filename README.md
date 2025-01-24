@@ -76,8 +76,12 @@ The CSP configuration includes:
   - `'nonce-[random]'`: Dynamic nonce for inline scripts
   - `'unsafe-inline'`: Fallback for older browsers
   - `https:`: Fallback for browsers not supporting strict-dynamic
+- `style-src`:
+  - `'self'`: Allows loading stylesheets from same origin
+  - `'nonce-[random]'`: Dynamic nonce for inline styles when STYLE_NONCE is enabled
 - `object-src 'none'`: Prevents injection of plugins
 - `base-uri 'none'`: Prevents base tag hijacking
+- `upgrade-insecure-requests`: Upgrades HTTP requests to HTTPS
 
 ## Troubleshooting
 
